@@ -1,0 +1,103 @@
+# Script to integrate a Windows 11 system into Wazuh
+
+# Define variables for Wazuh configuration
+$wazuhAgentVersion = "4.7.5-1" # Replace with the desired version
+$wazuhAgentDownloadUrl = "https://packages.wazuh.com/4.x/windows/wazuh-agent-$wazuhAgentVersion.msi"
+$wazuhManagerIP = "192.168.1.136" # Replace with your Wazuh Manager's IP address
+$wazuhAgentName = "wagnerW"
+$tempInstallerPath = "$env:TMP\wazuh-agent-$wazuhAgentVersion.msi"
+
+# Step 1: Download the Wazuh Agent Installer
+Write-Host "Downloading Wazuh agent installer..."
+try {
+    Invoke-WebRequest -Uri $wazuhAgentDownloadUrl -OutFile $tempInstallerPath -ErrorAction Stop
+    Write-Host "Wazuh agent installer downloaded successfully."
+} catch {
+    Write-Error "Failed to download Wazuh agent installer. Check the URL and try again."
+    exit 1
+}
+
+# Step 2: Install the Wazuh Agent Silently
+Write-Host "Installing Wazuh agent..."
+try {
+    msiexec.exe /i $tempInstallerPath /quiet WAZUH_MANAGER=$wazuhManagerIP WAZUH_AGENT_NAME=$wazuhAgentName WAZUH_REGISTRATION_SERVER=$wazuhManagerIP
+    Write-Host "Wazuh agent installed successfully."
+} catch {
+    Write-Error "Wazuh agent installation failed."
+    exit 1
+}
+
+# Step 3: Configure the Wazuh Agent
+$configPath = "C:\Program Files (x86)\ossec-agent\ossec.conf"
+if (!(Test-Path $configPath)) {
+    Write-Host "Configuration file not found. Creating a new one..."
+    try {
+        $xmlContent = @"
+<ossec_config>
+  <client>
+    <server>
+      <address>$wazuhManagerIP</address>
+    </server>
+  </client>
+</ossec_config>
+"@
+        $xmlContent | Out-File -FilePath $configPath -Encoding UTF8
+        Write-Host "Configuration file created successfully at $configPath."
+    } catch {
+        Write-Error "Failed to create the configuration file. Check permissions and file system availability."
+        exit 1
+    }
+} else {
+    Write-Host "Configuring Wazuh agent..."
+    try {
+        [xml]$configXML = Get-Content $configPath
+        $configXML.ossec.client.server.address = $wazuhManagerIP
+        $configXML.Save($configPath)
+        Write-Host "Wazuh agent configuration updated successfully."
+    } catch {
+        Write-Error "Failed to configure Wazuh agent. Ensure the configuration file exists and is accessible."
+        exit 1
+    }
+}
+
+# Step 4: Register the Wazuh Agent with the Manager
+$agentAuthPath = "C:\Program Files (x86)\ossec-agent\agent-auth.exe"
+if (Test-Path $agentAuthPath) {
+    Write-Host "Registering Wazuh agent with the manager..."
+    try {
+        & $agentAuthPath -m $wazuhManagerIP
+        Write-Host "Wazuh agent registered successfully."
+    } catch {
+        Write-Error "Failed to register Wazuh agent. Check the manager's IP and ensure connectivity."
+        exit 1
+    }
+} else {
+    Write-Error "Agent authentication utility not found. Ensure the Wazuh agent is installed correctly."
+    Write-Host "Troubleshooting steps:"
+    Write-Host "- Verify that the agent was installed in 'C:\Program Files (x86)\ossec-agent'."
+    Write-Host "- Ensure 'agent-auth.exe' exists in the installation directory."
+    Write-Host "- If missing, reinstall the agent or manually copy the file from another installation."
+    exit 1
+}
+
+# Step 5: Start the Wazuh Agent Service
+Write-Host "Starting Wazuh agent service..."
+try {
+    Start-Service -Name "wazuh-agent"
+    Set-Service -Name "wazuh-agent" -StartupType Automatic
+    Write-Host "Wazuh agent service started and set to automatic startup."
+} catch {
+    Write-Error "Failed to start Wazuh agent service. Check the installation and logs for issues."
+    exit 1
+}
+
+# Step 6: Cleanup
+Write-Host "Cleaning up temporary files..."
+try {
+    Remove-Item $tempInstallerPath -Force
+    Write-Host "Temporary files cleaned up successfully."
+} catch {
+    Write-Error "Failed to clean up temporary files. You may need to remove them manually."
+}
+
+Write-Host "Wazuh agent integration completed successfully!"

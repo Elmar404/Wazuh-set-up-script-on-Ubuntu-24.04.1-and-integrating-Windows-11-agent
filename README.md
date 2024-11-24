@@ -120,7 +120,7 @@ Create a custom rules file:
 
 sudo nano /var/ossec/etc/rules/local_rules.xml
 
- <group name="virustotal,">
+ **<group name="virustotal,">
   <rule id="100092" level="12">
     <if_sid>657</if_sid>
     <match>Successfully removed threat</match>
@@ -131,7 +131,7 @@ sudo nano /var/ossec/etc/rules/local_rules.xml
     <match>Error removing threat</match>
     <description>Error removing threat located at $(parameters.alert.data.virustotal.source.file)</description>
   </rule>
-</group>
+</group>**
 
 Restart Wazuh Manager to Apply Changes:
 

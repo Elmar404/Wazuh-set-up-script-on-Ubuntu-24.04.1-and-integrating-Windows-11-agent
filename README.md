@@ -1,0 +1,1 @@
+# Wazuh-set-up-script-on-Ubuntu-24.04.1-and-integrating-Windows-11-agent

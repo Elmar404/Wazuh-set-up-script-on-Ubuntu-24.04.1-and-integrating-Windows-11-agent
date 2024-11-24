@@ -1,0 +1,18 @@
+#!/bin/bash
+read INPUT_JSON
+FILENAME=$(echo $INPUT_JSON | jq -r .parameters.alert.data.virustotal.source.file)
+COMMAND=$(echo $INPUT_JSON | jq -r .command)
+LOG_FILE="/var/ossec/logs/active-responses.log"
+
+if [ "$COMMAND" = "add" ]; then
+  if [ -f "$FILENAME" ]; then
+    rm -f "$FILENAME"
+    if [ $? -eq 0 ]; then
+      echo "$(date '+%Y/%m/%d %H:%M:%S') $0: $INPUT_JSON Successfully removed threat" >> ${LOG_FILE}
+    else
+      echo "$(date '+%Y/%m/%d %H:%M:%S') $0: $INPUT_JSON Error removing threat" >> ${LOG_FILE}
+    fi
+  else
+    echo "$(date '+%Y/%m/%d %H:%M:%S') $0: $INPUT_JSON File not found" >> ${LOG_FILE}
+  fi
+fi

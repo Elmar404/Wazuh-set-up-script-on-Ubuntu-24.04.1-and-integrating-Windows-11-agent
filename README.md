@@ -23,7 +23,7 @@ Make the script executable:
 - chmod +x setup_wazuh_4.7.sh
 
 Run the script:
-- sudo bash ./wazuh-install.sh --ignore-check -a
+- sudo bash ./wazuh-install.sh --ignore-check --overwrite -a
 --------------------------------------------------------------------------------------------------
 Windows 11 agent
 Powershell

@@ -20,7 +20,7 @@ try {
 # Step 2: Install the Wazuh Agent Silently
 Write-Host "Installing Wazuh agent..."
 try {
-    msiexec.exe /i $tempInstallerPath /quiet WAZUH_MANAGER=$wazuhManagerIP WAZUH_AGENT_NAME=$wazuhAgentName WAZUH_REGISTRATION_SERVER=$wazuhManagerIP
+    msiexec.exe /i $tempInstallerPath /quiet WAZUH_MANAGER=$wazuhManagerIP
     Write-Host "Wazuh agent installed successfully."
 } catch {
     Write-Error "Wazuh agent installation failed."
@@ -36,7 +36,7 @@ if (!(Test-Path $configPath)) {
 <ossec_config>
   <client>
     <server>
-      <address>10.249.160.53</address>
+      <address>$wazuhManagerIP</address>
     </server>
   </client>
 </ossec_config>
@@ -73,10 +73,6 @@ if (Test-Path $agentAuthPath) {
     }
 } else {
     Write-Error "Agent authentication utility not found. Ensure the Wazuh agent is installed correctly."
-    Write-Host "Troubleshooting steps:"
-    Write-Host "- Verify that the agent was installed in 'C:\Program Files (x86)\ossec-agent'."
-    Write-Host "- Ensure 'agent-auth.exe' exists in the installation directory."
-    Write-Host "- If missing, reinstall the agent or manually copy the file from another installation."
     exit 1
 }
 
@@ -85,19 +81,26 @@ Write-Host "Starting Wazuh agent service..."
 try {
     Start-Service -Name "wazuh-agent"
     Set-Service -Name "wazuh-agent" -StartupType Automatic
-    Write-Host "Wazuh agent service started and set to automatic startup."
+    Start-Sleep -Seconds 5  # Wait for the service to start
+    $serviceStatus = Get-Service -Name "wazuh-agent"
+    if ($serviceStatus.Status -eq "Running") {
+        Write-Host "Wazuh agent service started and set to automatic startup."
+    } else {
+        Write-Error "Failed to start Wazuh agent service. Check the installation and logs for issues."
+        exit 1
+    }
 } catch {
-    Write-Error "Failed to start Wazuh agent service. Check the installation and logs for issues."
+    Write-Error "Failed to start Wazuh agent service."
     exit 1
 }
 
 # Step 6: Cleanup
 Write-Host "Cleaning up temporary files..."
-try {
+if (Test-Path $tempInstallerPath) {
     Remove-Item $tempInstallerPath -Force
     Write-Host "Temporary files cleaned up successfully."
-} catch {
-    Write-Error "Failed to clean up temporary files. You may need to remove them manually."
+} else {
+    Write-Host "No temporary files found to clean up."
 }
 
 Write-Host "Wazuh agent integration completed successfully!"

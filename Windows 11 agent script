@@ -3,7 +3,7 @@
 # Define variables for Wazuh configuration
 $wazuhAgentVersion = "4.7.5-1" # Replace with the desired version
 $wazuhAgentDownloadUrl = "https://packages.wazuh.com/4.x/windows/wazuh-agent-$wazuhAgentVersion.msi"
-$wazuhManagerIP = "192.168.1.136" # Replace with your Wazuh Manager's IP address
+$wazuhManagerIP = "10.249.160.53" # Replace with your Wazuh Manager's IP address
 $wazuhAgentName = "wagnerW"
 $tempInstallerPath = "$env:TMP\wazuh-agent-$wazuhAgentVersion.msi"
 
@@ -36,7 +36,7 @@ if (!(Test-Path $configPath)) {
 <ossec_config>
   <client>
     <server>
-      <address>$wazuhManagerIP</address>
+      <address>10.249.160.53</address>
     </server>
   </client>
 </ossec_config>
